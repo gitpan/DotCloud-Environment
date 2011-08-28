@@ -2,7 +2,7 @@ NAME
     DotCloud::Environment - easy handling of environment in dotcloud
 
 VERSION
-    version 0.7.0_01
+    version 0.7.0_02
 
 SYNOPSIS
        use DotCloud::Environment;
@@ -37,9 +37,9 @@ DESCRIPTION
 
     In general you will have multiple services in your application, and when
     you are in one instance inside dotCloud you can access the configuration
-    of the relevant ones reading either "home/dotcloud/environment.yml" or
-    "home/dotcloud/environment.json". For example, this lets your frontend
-    or backend applications know where the data services are, e.g. a Redis
+    of the relevant ones reading either /home/dotcloud/environment.yml or
+    /home/dotcloud/environment.json. For example, this lets your frontend or
+    backend applications know where the data services are, e.g. a Redis
     database or a MySQL one.
 
     This modules serves to two main goals:
@@ -54,8 +54,8 @@ DESCRIPTION
     With respect to the second goal, it should be observed that most of the
     times in your development environment you don't have the same exact
     situation as in dotCloud, e.g. it's improbable that you have a
-    "home/dotcloud" directory around. With this module you can set a
-    fallback to be used in different ways, e.g.:
+    /home/dotcloud directory around. With this module you can set a fallback
+    to be used in different ways, e.g.:
 
     *   providing a fallback file path to be loaded if
         "/home/dotcloud/environment.json" is not found;
