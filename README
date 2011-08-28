@@ -1,0 +1,315 @@
+NAME
+    DotCloud::Environment - easy handling of environment in dotcloud
+
+VERSION
+    version 0.7.0_01
+
+SYNOPSIS
+       use DotCloud::Environment;
+
+       # get an object, fallback to $path if not in dotCloud deploy
+       my $dcenv = DotCloud::Environment->new(fallback_file => $path);
+
+       # you should now which services make part of your stack!
+       my $nosqldb_conf = $dcenv->service('nosqldb');
+       my $type = $nosqldb_conf->{type}; # e.g. mysql, redis, etc.
+       my $vars = $nosqldb_conf->{vars}; # e.g. login, password, host, port...
+
+       # suppose your nosqldb service is redis...
+       require Redis;
+       my $redis = Redis->new(server => "$vars->{host}:$vars->{port}");
+       $redis->auth($vars->{password});
+
+       # another service, similar approach
+       my $conf = $dcenv->service('database');
+       die 'not MySQL?!?' unless $conf->{type} eq 'mysql';
+
+       my ($host, $port, $user, $pass)
+          = @{$conf->{vars}}{qw< host port login password >}
+       require DBI;
+       my $dbh = DBI->connect("dbi:mysql:host=$host;port=$port;database=wow",
+          $user, $pass, {RaiseError => 1});
+
+DESCRIPTION
+    DotCloud::Environment is useful when you design applications to be
+    deployed in the dotCloud platform. It is assumed that you know what
+    dotCloud is (anyway, see <http://www.dotcloud.com/>).
+
+    In general you will have multiple services in your application, and when
+    you are in one instance inside dotCloud you can access the configuration
+    of the relevant ones reading either "home/dotcloud/environment.yml" or
+    "home/dotcloud/environment.json". For example, this lets your frontend
+    or backend applications know where the data services are, e.g. a Redis
+    database or a MySQL one.
+
+    This modules serves to two main goals:
+
+    *   it reads either file to load the configuration of each service, so
+        that you can access this configuration easily as a hash of hashes;
+
+    *   it lets you abstract from the assumption that you're actually in a
+        dotCloud instance, allowing you to use the same interface also in
+        your development environment.
+
+    With respect to the second goal, it should be observed that most of the
+    times in your development environment you don't have the same exact
+    situation as in dotCloud, e.g. it's improbable that you have a
+    "home/dotcloud" directory around. With this module you can set a
+    fallback to be used in different ways, e.g.:
+
+    *   providing a fallback file path to be loaded if
+        "/home/dotcloud/environment.json" is not found;
+
+    *   setting up the "DOTCLOUD_ENVIRONMENT" environment variable to point
+        to the file to be used;
+
+METHODS
+  new
+       $dcenv = DotCloud::Environment->new(%params);
+       $dcenv = DotCloud::Environment->new({%params});
+
+    Create a new object. Parameters are:
+
+    no_load
+        don't attempt to load the configuration
+
+    environment_string
+        unconditionally use the provided string, ignoring everything else;
+
+    environment_file
+        unconditionally use the provided file, ignoring everything else;
+
+    fallback_string
+        use the provided string if other methods fail;
+
+    fallback_file
+        use the provided file if other methods fail.
+
+    Unless "no_load" is passed and set to true, the object creation also
+    calls the "/load" method.
+
+    Returns the new object or "croak"s if errors occur.
+
+  load
+       $dcenv->load(%params);
+       $dcenv->load({%params});
+
+    loads the configuration for an application. The accepted parameters are
+    "environment_string", "environment_file", "fallback_string" and
+    "fallback_file" with the same meaning as in the constructor (see "new").
+
+    The sequence to get the configuration string is the following:
+
+    environment_string
+        from parameter passed to the method
+
+    environment_file
+        from parameter passed to the method
+
+    environment_string
+        from parameter set in the constructor
+
+    environment_file
+        from parameter set in the constructor
+
+    DOTCLOUD_ENVIRONMENT
+        environment variable (i.e. $ENV{DOTCLOUD_ENVIRONMENT})
+
+    $DotCloud::Environment::main_file_path
+        which defaults to /home/dotcloud/environment.json (you SHOULD NOT
+        change this variable unless you really know what you're doing)
+
+    fallback_string
+        from parameter passed to the method
+
+    fallback_file
+        from parameter passed to the method
+
+    fallback_string
+        from parameter set in the constructor
+
+    fallback_file
+        from parameter set in the constructor
+
+    It is possible to load multiple configuration files from multiple
+    applications.
+
+    Return a reference to the object itself.
+
+  as_json
+       %json_for = $dcenv->as_json();
+       $json_for = $dcenv->as_json();
+
+    this method rebuilds the JSON representations of all the applications.
+
+    Returns a hash (in list context) or an anonymous hash (in scalar
+    context) with each application name pointing to the relevant JSON
+    string.
+
+  as_yaml
+       %yaml_for = $dcenv->as_yaml();
+       $yaml_for = $dcenv->as_yaml();
+
+    this method rebuilds the YAML representations of all the applications.
+
+    Returns a hash (in list context) or an anonymous hash (in scalar
+    context) with each application name pointing to the relevant YAML
+    string.
+
+  merge_json
+       $dcenv->merge_json($json_string);
+
+    add (or replace) the configuration of an application, provided as JSON
+    string. You should not need to do this explicitly, because this does the
+    same for you with autodetection of the format:
+
+       $dcenv->load(environment_string => $json_or_yaml_string);
+
+    Return a reference to the object itself.
+
+  merge_yaml
+       $dcenv->merge_yaml($yaml_string);
+
+    add (or replace) the configuration of an application, provided as YAML
+    string. You should not need to do this explicitly, because this does the
+    same for you with autodetection of the format:
+
+       $dcenv->load(environment_string => $json_or_yaml_string);
+
+  application_names
+       my @names = $dcenv->application_names();
+
+    returns the names of the applications loaded. Generally only one
+    application will be available, i.e. the one of the stack you're working
+    with.
+
+  applications
+       my %conf_for = $dcenv->applications();
+       my $conf_for = $dcenv->applications();
+
+    returns a hash (in list context) or anonymous hash (in scalar context)
+    with the relevant data of all the applications. Example:
+
+       {
+          app1 => {
+             project      => 'app1',
+             environment  => 'default',
+             service_id   => 0,
+             service_name => 'www',
+             services     => {
+                nosqldb => {
+                   type => 'redis',
+                   vars => {
+                      login    => 'redis',
+                      password => 'wafadsfsdfdsfdas',
+                      host     => 'data.app1.dotcloud.com',
+                      port     => '12345',
+                   }
+                }
+                sqldb => {
+                   type => 'mysql',
+                   vars => {
+                      login    => 'mysql',
+                      password => 'wafadsfsdfdsfdas',
+                      host     => 'data.app1.dotcloud.com',
+                      port     => '54321',
+                   }
+                }
+             }
+          },
+          app2 => {
+             # ...
+          }
+       }
+
+  application
+       my %conf_for = $dcenv->application($appname);
+       my $conf_for = $dcenv->application($appname);
+
+    returns a hash (in list context) or anonymous hash (in scalar context)
+    with the relevant data for the requested application. Example:
+
+       {
+          project      => 'app1',
+          environment  => 'default',
+          service_id   => 0,
+          service_name => 'www',
+          services     => {
+             nosqldb => {
+                type => 'redis',
+                vars => {
+                   login    => 'redis',
+                   password => 'wafadsfsdfdsfdas',
+                   host     => 'data.app1.dotcloud.com',
+                   port     => '12345',
+                }
+             }
+             sqldb => {
+                type => 'mysql',
+                vars => {
+                   login    => 'mysql',
+                   password => 'wafadsfsdfdsfdas',
+                   host     => 'data.app1.dotcloud.com',
+                   port     => '54321',
+                }
+             }
+          }
+       }
+
+  service
+       my %conf_for = $dcenv->service(%params); # also with \%params
+       my $conf_for = $dcenv->service(%params); # also with \%params
+
+    returns a hash (in list context) or anonymous hash (in scalar context)
+    with the relevant data for the requested service. Example:
+
+       {
+          type => 'redis',
+          vars => {
+             login    => 'redis',
+             password => 'wafadsfsdfdsfdas',
+             host     => 'data.app1.dotcloud.com',
+             port     => '12345',
+          }
+       }
+
+    The parameters are the following:
+
+    service
+        (Required) the name of the service.
+
+    application
+        (Optional) the name of the application.
+
+    The name of the application is optional because in most cases it can be
+    omitted, e.g. because there is only one application. The name can be
+    also provided in the service name, in line with what normally happens in
+    dotCloud where the complete name of a service is something like
+    "application.service".
+
+    This is the algorithm:
+
+    *   if the name of the service is of the form "application.service", the
+        name is split into the two components;
+
+    *   otherwise, if the application parameter is present it is used
+
+    *   oterwise the service is searched among all the services of all the
+        applications.
+
+    If exactly one service is found it is returned, otherwise this method
+    "croak"s.
+
+AUTHOR
+    Flavio Poletti <polettix@cpan.org>
+
+COPYRIGHT AND LICENSE
+    Copyright (C) 2011 by Flavio Poletti polettix@cpan.org.
+
+    This module is free software. You can redistribute it and/or modify it
+    under the terms of the Artistic License 2.0.
+
+    This program is distributed in the hope that it will be useful, but
+    without any warranty; without even the implied warranty of
+    merchantability or fitness for a particular purpose.
+
