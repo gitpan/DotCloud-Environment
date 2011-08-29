@@ -2,13 +2,16 @@ NAME
     DotCloud::Environment - easy handling of environment in dotcloud
 
 VERSION
-    version 0.7.0_02
+    version 0.7.0_03
 
 SYNOPSIS
        use DotCloud::Environment;
 
        # get an object, fallback to $path if not in dotCloud deploy
        my $dcenv = DotCloud::Environment->new(fallback_file => $path);
+
+       # even more lazy, make it look for files in various directories
+       $dcenv = DotCloud::Environment->new(backtrack => 1);
 
        # you should now which services make part of your stack!
        my $nosqldb_conf = $dcenv->service('nosqldb');
@@ -85,6 +88,10 @@ METHODS
     fallback_file
         use the provided file if other methods fail.
 
+    backtrack
+        if nothing works and no fallback is set, look for suitable files in
+        filesystem.
+
     Unless "no_load" is passed and set to true, the object creation also
     calls the "/load" method.
 
@@ -95,8 +102,9 @@ METHODS
        $dcenv->load({%params});
 
     loads the configuration for an application. The accepted parameters are
-    "environment_string", "environment_file", "fallback_string" and
-    "fallback_file" with the same meaning as in the constructor (see "new").
+    "environment_string", "environment_file", "fallback_string",
+    "fallback_file" and "backtrack" with the same meaning as in the
+    constructor (see "new").
 
     The sequence to get the configuration string is the following:
 
@@ -130,6 +138,18 @@ METHODS
 
     fallback_file
         from parameter set in the constructor
+
+    If none of the above works there's still some hope in case there is
+    option "backtrack" (or it was specified to the constructor). In this
+    case, either file is searched recursively starting from the following
+    directories:
+
+    *   the one returned by "find_code_dir" (but as if it were called by the
+        caller of "load", i.e. with a value of "n" equal to 1)
+
+    *   the current working directory
+
+    *   the directory of the file that called us.
 
     It is possible to load multiple configuration files from multiple
     applications.
@@ -299,6 +319,62 @@ METHODS
 
     If exactly one service is found it is returned, otherwise this method
     "croak"s.
+
+  service_vars
+       my %vars   = $dcenv->service_vars(%params); # also \%params
+       my $vars   = $dcenv->service_vars(%params); # also \%params
+       my @values = $dcenv->service_vars(%params); # also \%params
+       my $values = $dcenv->service_vars(%params); # also \%params
+
+    this method is a shorthand to get the configuration variables of a
+    single service. Depending on the input, the return value might be
+    structured like a hash or like an array:
+
+    service
+        the name of the service, see "service"
+
+    application
+        the name of the application, see "service"
+
+    list
+        (Optional) if a list is provided, then the values corresponding to
+        each item in order is returned. This allows writing things like
+        this:
+
+           my ($host, $port, $password) = $dcenv->service_list(
+              service => 'nosqldb',
+              list => [ qw< host port password > ],
+           );
+
+        and get directly the values to put into variables. In this case, the
+        return value can be a list of values or an anonymous array with the
+        values.
+
+        If this parameter is not present, the whole name/value hash is
+        returned, either as a list or as an anonymous hash depending on the
+        context.
+
+  find_code_dir
+       my $code_directory = $dcenv->find_code_dir(%params);
+       my $code_directory = DotCloud::Environment->find_code_dir(%params);
+       my $code_directory = DotCloud::Environment::find_code_dir(%params);
+
+    not really a method, this function tries to find the file dotcloud.yml
+    that describe the application backtracking from the current working
+    directory and from the directory containing the file that called us
+    (i.e. what happens to be "(caller($n))[1]").
+
+    Parameters:
+
+    n   an integer, defaulting to 0, that tells how to call "caller()". You
+        shouldn't need to set it, anyway.
+
+    unix
+        when set, the name of the directory will be returned in Unix format,
+        so that you can use it with "use lib".
+
+    This should be useful if you want to put a default configuration file
+    there or if you want to set up a shared library directory.
 
 AUTHOR
     Flavio Poletti <polettix@cpan.org>
