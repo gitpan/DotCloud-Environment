@@ -1,6 +1,6 @@
 package DotCloud::Environment;
 {
-  $DotCloud::Environment::VERSION = '0.7.0_03';
+  $DotCloud::Environment::VERSION = '0.7.0_04';
 }
 
 # ABSTRACT: easy handling of environment in dotcloud
@@ -300,7 +300,7 @@ DotCloud::Environment - easy handling of environment in dotcloud
 
 =head1 VERSION
 
-version 0.7.0_03
+version 0.7.0_04
 
 =head1 SYNOPSIS
 
