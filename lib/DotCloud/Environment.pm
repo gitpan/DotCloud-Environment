@@ -1,6 +1,6 @@
 package DotCloud::Environment;
 {
-  $DotCloud::Environment::VERSION = '0.7.0_04';
+  $DotCloud::Environment::VERSION = '0.7.0_05';
 }
 
 # ABSTRACT: easy handling of environment in dotcloud
@@ -300,7 +300,7 @@ DotCloud::Environment - easy handling of environment in dotcloud
 
 =head1 VERSION
 
-version 0.7.0_04
+version 0.7.0_05
 
 =head1 SYNOPSIS
 
@@ -331,6 +331,12 @@ version 0.7.0_04
    require DBI;
    my $dbh = DBI->connect("dbi:mysql:host=$host;port=$port;database=wow",
       $user, $pass, {RaiseError => 1});
+
+   # say that you have a 'lib' in your code base directory, i.e. the one
+   # linked by /home/dotcloud/code and that contains dotcloud.yml
+   use DotCloud::Environment;
+   use lib DotCloud::Environment::find_code_dir(unix => 1) . '/lib';
+   use Module::In::Lib;
 
 =head1 DESCRIPTION
 

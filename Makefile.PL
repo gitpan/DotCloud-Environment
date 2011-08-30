@@ -21,9 +21,10 @@ my %WriteMakefileArgs = (
   "NAME" => "DotCloud::Environment",
   "PREREQ_PM" => {
     "JSON" => "2.53",
+    "Test::Exception" => "0.31",
     "YAML" => "0.72"
   },
-  "VERSION" => "0.7.0_04",
+  "VERSION" => "0.7.0_05",
   "test" => {
     "TESTS" => "t/*.t"
   }
