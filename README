@@ -2,7 +2,7 @@ NAME
     DotCloud::Environment - easy handling of environment in dotcloud
 
 VERSION
-    version 0.8.0_01
+    version 0.8.0_02
 
 SYNOPSIS
        # Most typical usage, suppose you have a shared 'lib' directory
@@ -14,8 +14,8 @@ SYNOPSIS
        # Most typical usage when you set a default environment.json file
        # in the root of your project and you need to access the variables
        # of the 'redis' service
-       use DotCloud::Environment 'dotenv';
-       my $redis_vars = dotenv->service_vars('redis');
+       use DotCloud::Environment 'dotvars';
+       my $redis_vars = dotvars('redis');
 
        # Not-very-typical usage examples from now on!
 
@@ -144,13 +144,19 @@ DESCRIPTION
        use DotCloud::Environment 'dotenv';
 
        # ... when you need it...
-       my $vars = dotenv()->service_vars('service-name');
+       my $service = dotenv()->service('service-name');
+
+    Most of the time all you need is to access the variables related to a
+    specific service, so there's a shortcut for this:
+
+       use DotCloud::Environment 'dotvars';
+       my $vars = dotvars('service-name');
 
     For example, suppose that you want to implement a function to connect to
     a Redis service called "redisdb":
 
        sub get_redis {
-          my $vars = dotenv()->service_vars('redisdb');
+          my $vars = dotvars('redisdb');
 
           require Redis;
           my $redis = Redis->new(server => "$vars->{host}:$vars->{port}");
@@ -158,7 +164,7 @@ DESCRIPTION
           return $redis;
        }
 
-    Of course you can use "dotenv" directly in "FrontEnd.pm" and
+    Of course you can use "dotenv"/"dotvars" directly in "FrontEnd.pm" and
     "BackEnd.pm", but you will probably benefit from refactoring your common
     code to avoid duplications.
 
@@ -460,7 +466,9 @@ FUNCTIONS
     not happy with the name of the imported subroutines you can provide your
     own names, e.g.:
 
-       use DotCloud::Environment dotenv => { -as => 'dotcloud_environment' };
+       use DotCloud::Environment
+          dotvars => { -as => 'dotcloud_variables_for' };
+       my $vars = dotcloud_variables_for('my-service');
 
   dotenv
        my $singleton = dotenv();
@@ -474,6 +482,13 @@ FUNCTIONS
        my @application_names = dotenv()->application_names();
        # ...
        my $vars = dotenv()->service_vars('my-sql-db');
+
+  dotvars
+       my $vars = dotvars('service-name');
+
+    This function gets the configuration variables for the provided service
+    using the default singleton instance. Most of the time this is exactly
+    what you want, and nothing more.
 
   find_code_dir
        my $code_directory = find_code_dir(%params);

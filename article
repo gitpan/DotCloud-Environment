@@ -1,0 +1,130 @@
+I'm in the process of releasing [DotCloud::Environment](http://search.cpan.org/dist/DotCloud-Environment/), a module that should ease the developer's life with providing a unified entry point to get [dotCloud](http://dotcloud.com/)'s configurations for an application.
+
+A typical case I had while playing with dotCloud was that I could easily deploy an application, but I had no simple way to setup a basic test environment in my development machine. This is unfortunate because it shifts all testing on the deployed infrastructure.
+
+When you create an application on dotCloud, you're probably going to have some services that resolve to *code* you have to write, other ones that resolve to *data* you're going to populate or use. The link that allows a code service to access a data service is the file `/home/dotcloud/environment.json` (or its equivalent YAML representation `/home/dotcloud/environment.yml`), so you know where to look for when you are in the deployed environment.
+
+What happens when you are in your development environment? You're basically on your own - you have to figure out that you're **not** in dotCloud, find some place where to put the configuration, etc. etc. In a few words: boring stuff that you don't need.
+
+[DotCloud::Environment](http://search.cpan.org/dist/DotCloud-Environment/)'s goal is to streamline and simplify the process, providing a unified interface to access dotCloud's configuration in whatever environment you are. It has a default mode that should fit the typical case, while letting you decide that your setup needs some customisations.
+
+### A Typical Directory Layout
+
+(for some definition of *typical*, of course)
+
+In order to keep your code clean, you will probably be dividing it
+depending on the functional block that will be deployed as a service in
+dotCloud. Suppose that you have a frontend service, a backend service
+and a database; you probably have the following directory layout:
+
+    project
+    +- dotcloud.yml
+    +- backend
+    |  | ...
+    |  +- lib
+    |     +- Backend.pm
+    +- frontend
+    |  | ...
+    |  +- lib
+    |     +- FrontEnd.pm
+    +- lib
+       +- Shared.pm
+
+Each service is put into a separate directory and all the code that
+they both use (e.g. functions to connect to databases) is put in a
+common `lib` directory.
+
+### Where Should I Put My Local Configuration?
+
+The main goal is to let it find the right `environment.json` (or,
+equivalently, `environment.yml`) depending on the environment you are
+into. If you are in dotCloud there is actually no problem, because by 
+default the *right* `/home/dotcloud/environment.json` file is selected;
+for your local development the best thing to do is to put the
+configuration file in the project’s root directory, which becomes like
+this:
+
+    project
+    +- dotcloud.yml
+    +- backend
+    |  | ... 
+    |  +- lib
+    |     +- Backend.pm
+    +- frontend
+    |  | ... 
+    |  +- lib
+    |     +- FrontEnd.pm
+    +- lib
+    |  +- Shared.pm
+    |     
+    +- environment.json
+
+Putting the file in that position lets DotCloud::Environment find it by
+default when no `/home/dotcloud/environment.json` file (or the
+equivalent YAML file) is found in the system. Which hopefully is the
+case of your development environment.
+
+Of course you should customise *this* `environment.json`/`environment.yml` file to suit your needs in the development environment, following the same rules that dotCloud uses to generate it. It's quite straightforward so you should not have problems with this.
+
+### And Now?
+
+Now you're ready to use [DotCloud::Environment](http://search.cpan.org/dist/DotCloud-Environment/)!
+
+In your *code* services you will probably need to access the shared library only. [DotCloud::Environment](http://search.cpan.org/dist/DotCloud-Environment/) helps you find the directory to provide to `use lib` via the `path_for` function:
+
+    # -- in BackEnd.pm and FrontEnd.pm --
+    use DotCloud::Environment 'path_for';
+    use lib path_for('lib');
+    use Shared ...;
+
+On the other hand, in your shared library you will probably need to access the actual configurations for the environment you are in. The most straightforward way to do this is via the `dotvars` function, that provides you an (anonymous on request) hash containing the relevant configurations for the service you need:
+
+    # -- in Shared.pm --
+    use DotCloud::Environment 'dotvars';
+
+    # ... when you need it... 
+    my $vars = dotvars('service-name');
+
+For example, suppose that you want to implement a function to connect
+to a Redis service called `redisdb` and a function to connect to a MySQL
+service called `sqldb`:
+
+    use DotCloud::Environment 'dotvars';
+    sub get_redis {
+       my $vars = dotvars('redisdb');  # getting an anonymous hash
+    
+       require Redis;
+       my $redis = Redis->new(server => "$vars->{host}:$vars->{port}");
+       $redis->auth($vars->{password});
+       return $redis;
+    }
+    sub get_sqldb {
+       my %vars = dotvars('redisdb'); # getting a hash
+       my ($host, $port, $user, $pass)
+             = @vars{qw< host port login password >}
+
+       require DBI;
+       my $dbh = DBI->connect("dbi:mysql:host=$host;port=$port;database=db",
+                              $user, $pass, {RaiseError => 1});
+    }
+
+
+Of course you can use `dotvars` directly in `FrontEnd.pm` and
+`BackEnd.pm`, but you will probably benefit from refactoring your
+common code to avoid duplications.
+
+### Minor Customisations
+
+If you don't like how `dotvars` (or any other function in the functional interface) is named, you can take advantage of the fact that [Sub::Exporter](http://search.cpan.org/dist/Sub-Exporter/) is used behind the scenes. This lets you do this:
+
+    use DotCloud::Environment
+       dotvars => { -as => 'dotcloud_variables_for' };
+    my %vars = dotcloud_variables_for('my-service');
+
+### Major Customisations
+
+[DotCloud::Environment](http://search.cpan.org/dist/DotCloud-Environment/) lets you play with an interface that is wider than just using `path_for` and `dotvars`, of course, in addition on not strictly requiring you to put the development configuration file in the suggested position. You're encouraged to take a look at the full documentation; in case you want to position your file in some fixed position, you can use the environment variable `DOTCLOUD_ENVIRONMENT`.
+
+### Conclusions
+
+Do you like dotCloud? I do, and now I think that I'll find it a bit easier to develop stuff that is *(dot)Cloud-ready* (to use some buzz-expression).
