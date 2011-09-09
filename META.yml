@@ -14,7 +14,8 @@ meta-spec:
 name: DotCloud-Environment
 requires:
   JSON: 2.53
+  Sub::Exporter: 0
   Test::Exception: 0.31
   YAML: 0.72
   perl: 5.008_000
-version: 0.7.0_05
+version: 0.8.0_01
