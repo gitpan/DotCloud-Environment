@@ -2,7 +2,7 @@ NAME
     DotCloud::Environment - easy handling of environment in dotcloud
 
 VERSION
-    version 0.8.0_02
+    version 0.8.0_04
 
 SYNOPSIS
        # Most typical usage, suppose you have a shared 'lib' directory
@@ -156,11 +156,11 @@ DESCRIPTION
     a Redis service called "redisdb":
 
        sub get_redis {
-          my $vars = dotvars('redisdb');
+          my %vars = dotvars('redisdb');
 
           require Redis;
-          my $redis = Redis->new(server => "$vars->{host}:$vars->{port}");
-          $redis->auth($vars->{password});
+          my $redis = Redis->new(server => "$vars{host}:$vars{port}");
+          $redis->auth($vars{password});
           return $redis;
        }
 
@@ -203,7 +203,7 @@ METHODS
        $dcenv->load(%params);
        $dcenv->load({%params});
 
-    loads the configuration for an application. The accepted parameters are
+    Load the configuration for an application. The accepted parameters are
     "environment_string", "environment_file", "fallback_string",
     "fallback_file" and "backtrack" with the same meaning as in the
     constructor (see "new").
@@ -253,6 +253,10 @@ METHODS
 
     *   the directory of the file that called us.
 
+    Actually, option "backtrack" is enabled by default, so if you do not
+    want the behaviour above you have to explicitly disable it (e.g. passing
+    "backtrack => 0" in the constructor).
+
     It is possible to load multiple configuration files from multiple
     applications.
 
@@ -262,7 +266,7 @@ METHODS
        %json_for = $dcenv->as_json();
        $json_for = $dcenv->as_json();
 
-    this method rebuilds the JSON representations of all the applications.
+    Rebuild the JSON representations of all the applications.
 
     Returns a hash (in list context) or an anonymous hash (in scalar
     context) with each application name pointing to the relevant JSON
@@ -272,7 +276,7 @@ METHODS
        %yaml_for = $dcenv->as_yaml();
        $yaml_for = $dcenv->as_yaml();
 
-    this method rebuilds the YAML representations of all the applications.
+    Rebuild the YAML representations of all the applications.
 
     Returns a hash (in list context) or an anonymous hash (in scalar
     context) with each application name pointing to the relevant YAML
@@ -281,7 +285,7 @@ METHODS
   merge_json
        $dcenv->merge_json($json_string);
 
-    add (or replace) the configuration of an application, provided as JSON
+    Add (or replace) the configuration of an application, provided as JSON
     string. You should not need to do this explicitly, because this does the
     same for you with autodetection of the format:
 
@@ -292,7 +296,7 @@ METHODS
   merge_yaml
        $dcenv->merge_yaml($yaml_string);
 
-    add (or replace) the configuration of an application, provided as YAML
+    Add (or replace) the configuration of an application, provided as YAML
     string. You should not need to do this explicitly, because this does the
     same for you with autodetection of the format:
 
@@ -309,8 +313,8 @@ METHODS
        my %conf_for = $dcenv->applications();
        my $conf_for = $dcenv->applications();
 
-    returns a hash (in list context) or anonymous hash (in scalar context)
-    with the relevant data of all the applications. Example:
+    Get a hash (in list context) or anonymous hash (in scalar context) with
+    the relevant data of all the applications. Example:
 
        {
           app1 => {
@@ -348,8 +352,8 @@ METHODS
        my %conf_for = $dcenv->application($appname);
        my $conf_for = $dcenv->application($appname);
 
-    returns a hash (in list context) or anonymous hash (in scalar context)
-    with the relevant data for the requested application. Example:
+    Get a hash (in list context) or anonymous hash (in scalar context) with
+    the relevant data for the requested application. Example:
 
        {
           project      => 'app1',
@@ -382,8 +386,8 @@ METHODS
        my %conf_for = $dcenv->service(%params); # also with \%params
        my $conf_for = $dcenv->service(%params); # also with \%params
 
-    returns a hash (in list context) or anonymous hash (in scalar context)
-    with the relevant data for the requested service. Example:
+    Get a hash (in list context) or anonymous hash (in scalar context) with
+    the relevant data for the requested service. Example:
 
        {
           type => 'redis',
@@ -423,14 +427,19 @@ METHODS
     "croak"s.
 
   service_vars
+       my %vars   = $dcenv->service_vars('service-name');
+       my $vars   = $dcenv->service_vars('service-name');
        my %vars   = $dcenv->service_vars(%params); # also \%params
        my $vars   = $dcenv->service_vars(%params); # also \%params
        my @values = $dcenv->service_vars(%params); # also \%params
        my $values = $dcenv->service_vars(%params); # also \%params
 
-    this method is a shorthand to get the configuration variables of a
-    single service. Depending on the input, the return value might be
-    structured like a hash or like an array:
+    Shorthand to get the configuration variables of a single service.
+
+    The input parameter list can be a single string with the name of the
+    service, or a hash/anonymous hash with parameters. Depending on the
+    input, the return value might be structured like a hash or like an
+    array:
 
     service
         the name of the service, see "service"
@@ -489,6 +498,9 @@ FUNCTIONS
     This function gets the configuration variables for the provided service
     using the default singleton instance. Most of the time this is exactly
     what you want, and nothing more.
+
+    This function actually calls "service_vars" behind the scenes, you can
+    pass all the parameters that the method accepts.
 
   find_code_dir
        my $code_directory = find_code_dir(%params);
