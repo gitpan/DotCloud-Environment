@@ -2,7 +2,7 @@ NAME
     DotCloud::Environment - easy handling of environment in dotcloud
 
 VERSION
-    version 0.8.0_04
+    version 0.8.0_05
 
 SYNOPSIS
        # Most typical usage, suppose you have a shared 'lib' directory

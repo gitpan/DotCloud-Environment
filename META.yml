@@ -18,4 +18,4 @@ requires:
   Test::Exception: 0.31
   YAML: 0.72
   perl: 5.008_000
-version: 0.8.0_04
+version: 0.8.0_05
