@@ -2,7 +2,7 @@ NAME
     DotCloud::Environment - easy handling of environment in dotcloud
 
 VERSION
-    version 0.8.0_05
+    version 0.9.0
 
 SYNOPSIS
        # Most typical usage, suppose you have a shared 'lib' directory
@@ -145,12 +145,14 @@ DESCRIPTION
 
        # ... when you need it...
        my $service = dotenv()->service('service-name');
+       my $type = $service->{type}; # e.g. mysql, redis, etc.
+       my $vars = $service->{vars}; # e.g. login, password, host...
 
     Most of the time all you need is to access the variables related to a
     specific service, so there's a shortcut for this:
 
        use DotCloud::Environment 'dotvars';
-       my $vars = dotvars('service-name');
+       my %vars = dotvars('service-name');
 
     For example, suppose that you want to implement a function to connect to
     a Redis service called "redisdb":
@@ -192,10 +194,11 @@ METHODS
 
     backtrack
         if nothing works and no fallback is set, look for suitable files in
-        filesystem.
+        filesystem. This option is activated by default, so you can use it
+        to *disable* it (e.g. with "backtrack => 0").
 
     Unless "no_load" is passed and set to true, the object creation also
-    calls the "/load" method.
+    calls the "load" method.
 
     Returns the new object or "croak"s if errors occur.
 
@@ -260,7 +263,7 @@ METHODS
     It is possible to load multiple configuration files from multiple
     applications.
 
-    Return a reference to the object itself.
+    Returns a reference to the object itself.
 
   as_json
        %json_for = $dcenv->as_json();
@@ -305,7 +308,7 @@ METHODS
   application_names
        my @names = $dcenv->application_names();
 
-    returns the names of the applications loaded. Generally only one
+    Returns the names of the applications loaded. Generally only one
     application will be available, i.e. the one of the stack you're working
     with.
 
@@ -420,7 +423,7 @@ METHODS
 
     *   otherwise, if the application parameter is present it is used
 
-    *   oterwise the service is searched among all the services of all the
+    *   otherwise the service is searched among all the services of all the
         applications.
 
     If exactly one service is found it is returned, otherwise this method
@@ -505,7 +508,7 @@ FUNCTIONS
   find_code_dir
        my $code_directory = find_code_dir(%params);
 
-    This function tries to find the file dotcloud.yml that describe the
+    This function tries to find the file dotcloud.yml that describes the
     application backtracking from the current working directory and from the
     directory containing the file that called us (i.e. what happens to be
     "(caller($n))[1]").
@@ -531,9 +534,9 @@ FUNCTIONS
     This function produces a list of paths that are suitable for "use lib".
     It uses "find_code_dir" internally, see it for details.
 
-    You should pass a list of subdirectories which will be rebased using
-    "find_code_dir" as a parent directory. If you are actually in the
-    dotCloud enviroment, the example above produces the path
+    You should pass a list of subdirectories which will be rebased using the
+    result of "find_code_dir" as a parent directory. If you are actually in
+    the dotCloud enviroment, the example above produces the path
     "/home/dotcloud/code/lib".
 
     Returns a list of Unix paths, one element for each input directory.
