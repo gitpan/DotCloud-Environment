@@ -2,7 +2,7 @@ NAME
     DotCloud::Environment - easy handling of environment in dotcloud
 
 VERSION
-    version 0.9.0
+    version 0.9.1
 
 SYNOPSIS
        # Most typical usage, suppose you have a shared 'lib' directory
@@ -72,8 +72,12 @@ DESCRIPTION
     *   providing a fallback file path to be loaded if
         "/home/dotcloud/environment.json" is not found;
 
-    *   setting up the "DOTCLOUD_ENVIRONMENT" environment variable to point
-        to the file to be used.
+    *   setting up the "DOTCLOUD_ENVIRONMENT_FILE" environment variable to
+        point to the file to be used.
+
+        NOTE: as of version 0.9.1 this variable substitutes
+        "DOTCLOUD_ENVIRONMENT", which DotCloud started using for its own
+        purposes.
 
   Suggested/Typical Usage
     In order to keep your code clean, you will probably be dividing it
@@ -225,8 +229,10 @@ METHODS
     environment_file
         from parameter set in the constructor
 
-    DOTCLOUD_ENVIRONMENT
-        environment variable (i.e. $ENV{DOTCLOUD_ENVIRONMENT})
+    DOTCLOUD_ENVIRONMENT_FILE
+        environment variable (i.e. $ENV{DOTCLOUD_ENVIRONMENT_FILE}). Note
+        that this was formerly $ENV{DOTCLOUD_ENVIRONMENT} but due to
+        DotCloud starting using this variable it is no longer available.
 
     $DotCloud::Environment::main_file_path
         which defaults to /home/dotcloud/environment.json (you SHOULD NOT
