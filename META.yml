@@ -16,6 +16,7 @@ requires:
   JSON: 2.53
   Sub::Exporter: 0
   Test::Exception: 0.31
+  Try::Tiny: 0
   YAML: 0.72
-  perl: 5.008_000
-version: 0.9.1
+  perl: 5.012_000
+version: 0.9.2

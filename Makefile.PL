@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-use 5.008_000;
+use 5.012_000;
 
 use ExtUtils::MakeMaker 6.30;
 
@@ -23,9 +23,10 @@ my %WriteMakefileArgs = (
     "JSON" => "2.53",
     "Sub::Exporter" => 0,
     "Test::Exception" => "0.31",
+    "Try::Tiny" => 0,
     "YAML" => "0.72"
   },
-  "VERSION" => "0.9.1",
+  "VERSION" => "0.9.2",
   "test" => {
     "TESTS" => "t/*.t"
   }

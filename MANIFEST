@@ -14,6 +14,7 @@ t/05-mainfile.t
 t/06-as_json.t
 t/07-as_yaml.t
 t/08.service_vars.t
+t/08.subservice_vars.t
 t/09.find_code_dir.t
 t/10-backtrack.t
 t/dotcloud.yml

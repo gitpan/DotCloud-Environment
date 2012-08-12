@@ -2,7 +2,7 @@ NAME
     DotCloud::Environment - easy handling of environment in dotcloud
 
 VERSION
-    version 0.9.1
+    version 0.9.2
 
 SYNOPSIS
        # Most typical usage, suppose you have a shared 'lib' directory
@@ -79,6 +79,43 @@ DESCRIPTION
         "DOTCLOUD_ENVIRONMENT", which DotCloud started using for its own
         purposes.
 
+  A Note On Available Data
+    Data about DotCloud services is organized according to the structure of
+    the variables set in the relevant files. There are four significant
+    parts:
+
+    application
+        there can be multiple applications you're loading variables from,
+        and DotCloud::Environment lets you distinguish them apart
+
+    service
+        this is the name of a service in DotCloud sense. For example, if you
+        have application whatever like this:
+
+           $ dotcloud list whatever
+           whatever (flavor: legacy):
+             - nosqldb (type: redis; instances: 1)       
+             - sqldb   (type: mysql; instances: 1)       
+             - www     (type: perl; instances: 1)        
+             - backend (type: perl-worker; instances: 1)
+
+        you have four services defined: "nosqldb", "sqldb", "www" and
+        "backend"
+
+    subservice
+        this represents a subgroup of variables in a service. You should
+        always find two subservices: one is named "ssh", the other one has
+        the same name as the service type (e.g. "redis", "mysql",...).
+
+        It makes sense to consider "ssh" some kind of accessory information
+        and the other subservice as the "real" service.
+
+    variable name
+        this is the name of the variable, which is associated to a
+        subservice.
+
+    Values are assigned to variable names.
+
   Suggested/Typical Usage
     In order to keep your code clean, you will probably be dividing it
     depending on the functional block that will be deployed as a service in
@@ -149,8 +186,9 @@ DESCRIPTION
 
        # ... when you need it...
        my $service = dotenv()->service('service-name');
-       my $type = $service->{type}; # e.g. mysql, redis, etc.
-       my $vars = $service->{vars}; # e.g. login, password, host...
+       # ... now you have a hash ref which should have at least two
+       # elements: ssh and the real subservice type, e.g. mysql, redis, ...
+       my $redis_host = $service->{redis}{host};
 
     Most of the time all you need is to access the variables related to a
     specific service, so there's a shortcut for this:
@@ -158,11 +196,19 @@ DESCRIPTION
        use DotCloud::Environment 'dotvars';
        my %vars = dotvars('service-name');
 
+    The "dotvars" shortcut tries its best to DWIM, i.e. it lets you specify
+    either the name of a service or the name of a subservice.
+
     For example, suppose that you want to implement a function to connect to
     a Redis service called "redisdb":
 
        sub get_redis {
           my %vars = dotvars('redisdb');
+          # it could also be:
+          #
+          # my %vars = dotvars('redis'); # name of service type
+          #
+          # if there is only one service of type redis
 
           require Redis;
           my $redis = Redis->new(server => "$vars{host}:$vars{port}");
@@ -333,8 +379,7 @@ METHODS
              service_name => 'www',
              services     => {
                 nosqldb => {
-                   type => 'redis',
-                   vars => {
+                   redis => {
                       login    => 'redis',
                       password => 'wafadsfsdfdsfdas',
                       host     => 'data.app1.dotcloud.com',
@@ -342,8 +387,7 @@ METHODS
                    }
                 }
                 sqldb => {
-                   type => 'mysql',
-                   vars => {
+                   mysql => {
                       login    => 'mysql',
                       password => 'wafadsfsdfdsfdas',
                       host     => 'data.app1.dotcloud.com',
@@ -371,8 +415,7 @@ METHODS
           service_name => 'www',
           services     => {
              nosqldb => {
-                type => 'redis',
-                vars => {
+                redis => {
                    login    => 'redis',
                    password => 'wafadsfsdfdsfdas',
                    host     => 'data.app1.dotcloud.com',
@@ -380,8 +423,7 @@ METHODS
                 }
              }
              sqldb => {
-                type => 'mysql',
-                vars => {
+                mysql => {
                    login    => 'mysql',
                    password => 'wafadsfsdfdsfdas',
                    host     => 'data.app1.dotcloud.com',
@@ -399,8 +441,12 @@ METHODS
     the relevant data for the requested service. Example:
 
        {
-          type => 'redis',
-          vars => {
+          ssh => {
+             host     => 'data.app1.dotcloud.com',
+             port     => '12345',
+             url      => 'ssh://data.app1.dotcloud.com:12345/',
+          },
+          redis => {
              login    => 'redis',
              password => 'wafadsfsdfdsfdas',
              host     => 'data.app1.dotcloud.com',
@@ -435,26 +481,71 @@ METHODS
     If exactly one service is found it is returned, otherwise this method
     "croak"s.
 
-  service_vars
-       my %vars   = $dcenv->service_vars('service-name');
-       my $vars   = $dcenv->service_vars('service-name');
-       my %vars   = $dcenv->service_vars(%params); # also \%params
-       my $vars   = $dcenv->service_vars(%params); # also \%params
-       my @values = $dcenv->service_vars(%params); # also \%params
-       my $values = $dcenv->service_vars(%params); # also \%params
+  subservice
+       my %conf_for = $dcenv->subservice($subservice_name);
+       my %conf_for = $dcenv->subservice(%params); # also with \%params
+       my $conf_for = $dcenv->subservice(%params); # also with \%params
 
-    Shorthand to get the configuration variables of a single service.
+    Get a hash (in list context) or anonymous hash (in scalar context) with
+    the relevant data for the requested subservice. Example:
 
-    The input parameter list can be a single string with the name of the
-    service, or a hash/anonymous hash with parameters. Depending on the
-    input, the return value might be structured like a hash or like an
-    array:
+       redis => {
+          login    => 'redis',
+          password => 'wafadsfsdfdsfdas',
+          host     => 'data.app1.dotcloud.com',
+          port     => '12345',
+       }
+
+    It can be called with a single non-reference scalar that represents the
+    subservice to look for. Otherwise it accepts the following parameters in
+    a hash or a reference to a hash:
+
+    subservice
+        the name of the subservice
 
     service
         the name of the service, see "service"
 
     application
-        the name of the application, see "service"
+        the name of the application, see "application"
+
+    with obvious meanings.
+
+    The application and the service name can also be specified in the
+    subservice name with separating dots like in the following examples:
+
+       application.service.subservice
+       service.subservice
+
+    These configurations in the subservice name override parameters of the
+    same name (e.g. specifying "service.subservice" overrides the
+    $params{service} input parameters).
+
+    Croaks if more than one subservice with the given name is found.
+
+  subservice_vars
+       my %vars   = $dcenv->subservice_vars('subservice-name');
+       my $vars   = $dcenv->subservice_vars('subservice-name');
+       my %vars   = $dcenv->subservice_vars(%params); # also \%params
+       my $vars   = $dcenv->subservice_vars(%params); # also \%params
+       my @values = $dcenv->subservice_vars(%params); # also \%params
+       my $values = $dcenv->subservice_vars(%params); # also \%params
+
+    Shorthand to get the configuration variables of a single subservice.
+
+    The input parameter list can be a single string with the name of the
+    subservice, or a hash/anonymous hash with parameters. Depending on the
+    input, the return value might be structured like a hash or like an
+    array:
+
+    subservice
+        the name of the subservice, see "subservice"
+
+    service
+        the name of the service, see "service"
+
+    application
+        the name of the application, see "application"
 
     list
         (Optional) if a list is provided, then the values corresponding to
@@ -473,6 +564,28 @@ METHODS
         If this parameter is not present, the whole name/value hash is
         returned, either as a list or as an anonymous hash depending on the
         context.
+
+  service_vars
+       my %vars   = $dcenv->service_vars('service-name');
+       my $vars   = $dcenv->service_vars('service-name');
+       my %vars   = $dcenv->service_vars(%params); # also \%params
+       my $vars   = $dcenv->service_vars(%params); # also \%params
+       my @values = $dcenv->service_vars(%params); # also \%params
+       my $values = $dcenv->service_vars(%params); # also \%params
+
+    Shorthand to get the configuration variables of a single service. This
+    assumes that a *main* subservice can be found in the requested service,
+    according to the following algorithm:
+
+    *   first of all, a service is found with "service"
+
+    *   the *background* service "ssh" is ignored
+
+    *   if only one subservice remains in the service, it is assumed to be
+        the *main* subservice.
+
+    After this, the method behaves as if "subservice_vars" with the *main*
+    subservice were called.
 
 FUNCTIONS
     Nothing is exported by default, but you can import the following
@@ -502,14 +615,14 @@ FUNCTIONS
        my $vars = dotenv()->service_vars('my-sql-db');
 
   dotvars
-       my $vars = dotvars('service-name');
+       my $vars = dotvars('service-name-or-subservice-name');
 
     This function gets the configuration variables for the provided service
     using the default singleton instance. Most of the time this is exactly
     what you want, and nothing more.
 
-    This function actually calls "service_vars" behind the scenes, you can
-    pass all the parameters that the method accepts.
+    This function actually calls "service_vars" or "subservice_vars" behind
+    the scenes, you can pass all the parameters that the method accepts.
 
   find_code_dir
        my $code_directory = find_code_dir(%params);
