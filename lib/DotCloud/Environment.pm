@@ -1,6 +1,6 @@
 package DotCloud::Environment;
 {
-  $DotCloud::Environment::VERSION = '0.9.3';
+  $DotCloud::Environment::VERSION = '0.9.4';
 }
 
 # ABSTRACT: easy handling of environment in dotcloud
@@ -157,9 +157,9 @@ sub _merge {
          $data_for{$key} = $value;
       }
       else {
-         my ($service, $type, $varname) =
-           $key =~ m{\A (.*) _ ([^_]+) _ ([^_]+) \z}mxs;
-         $data_for{services}{$service}{$type}{$varname} = $value;
+         my $rref = \$data_for{services};
+         $rref = \$$rref->{$_} for split /_/, $key, 3;
+         $$rref = $value;
       } ## end else [ if ($flag_for{$key})
    } ## end while (my ($name, $value)...
 
@@ -403,10 +403,12 @@ sub service_vars {
       : ref($_[0])     ? %{$_[0]}
       :                  (service => $_[0]);
    my %service = _dclone_return($self->service(%params));
-   croak "no subservices" if scalar(keys %service) == 0;
-   delete $service{ssh} if scalar(keys %service) > 1;
-   croak "too many subservices" if scalar(keys %service) > 1;
-   my ($subservice) = values %service;
+   my @real_subs = grep { ref($service{$_}) } keys %service;
+   croak "no subservices" if @real_subs == 0;
+   @real_subs = grep { $_ ne 'ssh' } @real_subs
+      if @real_subs > 1;
+   croak "too many subservices" if @real_subs > 1;
+   my $subservice = $service{$real_subs[0]};
    return _subservice_vars($subservice, $params{list} // undef);
 }
 
@@ -421,7 +423,7 @@ DotCloud::Environment - easy handling of environment in dotcloud
 
 =head1 VERSION
 
-version 0.9.3
+version 0.9.4
 
 =head1 SYNOPSIS
 

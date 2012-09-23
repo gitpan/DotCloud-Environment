@@ -1,3 +1,7 @@
+0.9.4     2012-09-23 21:51:04 Europe/Rome
+   - fixed bug that made DotCloud::Environment emit warnings for
+     certain variables in DotCloud
+
 0.9.3     2012-09-23 17:48:37 Europe/Rome
    - fixed bug when returning stuff in scalar context in dotvars
 

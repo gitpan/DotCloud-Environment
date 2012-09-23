@@ -19,4 +19,4 @@ requires:
   Try::Tiny: 0
   YAML: 0.72
   perl: 5.012_000
-version: 0.9.3
+version: 0.9.4
