@@ -1,6 +1,6 @@
 package DotCloud::Environment;
 {
-  $DotCloud::Environment::VERSION = '0.9.2';
+  $DotCloud::Environment::VERSION = '0.9.3';
 }
 
 # ABSTRACT: easy handling of environment in dotcloud
@@ -50,7 +50,8 @@ sub dotvars {
          $retval[0] = dotenv()->subservice_vars(@params);
       }
    };
-   return @retval;
+   return @retval if wantarray();
+   return $retval[0];
 }
 
 sub find_code_dir {
@@ -420,7 +421,7 @@ DotCloud::Environment - easy handling of environment in dotcloud
 
 =head1 VERSION
 
-version 0.9.2
+version 0.9.3
 
 =head1 SYNOPSIS
 
